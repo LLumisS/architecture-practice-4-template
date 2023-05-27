@@ -2,10 +2,9 @@ package main
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/binary"
 	"flag"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"log"
 	"net/http"
@@ -100,15 +99,19 @@ func main() {
 	}
 
 	frontend := httptools.CreateServer(*port, http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		hash := md5.New()
-		hash.Write([]byte(r.RemoteAddr))
-		hashed := int(binary.BigEndian.Uint64(hash.Sum(nil)))
-		serverIndex := hashed % len(serversPool)
-		forward(serversPool[serverIndex], rw, r)
+		forward(serversPool[getIndex(r.RemoteAddr)], rw, r)
 	}))
 
 	log.Println("Starting load balancer...")
 	log.Printf("Tracing support enabled: %t", *traceEnabled)
 	frontend.Start()
 	signal.WaitForTerminationSignal()
+}
+
+func getIndex(address string) int {
+	hash := fnv.New32()
+	hash.Write([]byte(address))
+	hashed := int(hash.Sum32())
+	serverIndex := hashed % len(serversPool)
+	return serverIndex
 }
