@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"io"
@@ -98,8 +100,11 @@ func main() {
 	}
 
 	frontend := httptools.CreateServer(*port, http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		// TODO: Рееалізуйте свій алгоритм балансувальника.
-		forward(serversPool[0], rw, r)
+		hash := md5.New()
+		hash.Write([]byte(r.RemoteAddr))
+		hashed := int(binary.BigEndian.Uint64(hash.Sum(nil)))
+		serverIndex := hashed % len(serversPool)
+		forward(serversPool[serverIndex], rw, r)
 	}))
 
 	log.Println("Starting load balancer...")
