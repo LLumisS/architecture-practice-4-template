@@ -90,7 +90,7 @@ func main() {
 	flag.Parse()
 
 	// TODO: Використовуйте дані про стан сервреа, щоб підтримувати список тих серверів, яким можна відправляти ззапит.
-	healthyPool = healthCheck(serversPool)
+	healthCheck(serversPool, healthyPool)
 
 	frontend := httptools.CreateServer(*port, http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		forward(healthyPool[getIndex(r.RemoteAddr)], rw, r)
@@ -110,8 +110,7 @@ func getIndex(address string) int {
 	return serverIndex
 }
 
-func healthCheck(servers []string) []string {
-	result := make([]string, len(servers))
+func healthCheck(servers []string, result []string) {
 	for i, server := range servers {
 		server := server
 		i := i
@@ -124,5 +123,4 @@ func healthCheck(servers []string) []string {
 			}
 		}()
 	}
-	return result
 }
